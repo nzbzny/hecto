@@ -1,4 +1,6 @@
-Building a text editor in Rust following the blog at https://www.flenker.blog/hecto/
+My first foray into becoming a Rustacean  
+
+Building a text editor in Rust following https://www.flenker.blog/hecto/
 
 
 # TODO:

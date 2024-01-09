@@ -1,5 +1,6 @@
 use crate::Position;
 use crate::Row;
+use crate::SearchDirection;
 
 use std::fs;
 use std::io::{Error, Write};
@@ -15,7 +16,7 @@ impl Document {
     pub fn open(filename: &str) -> Result<Self, std::io::Error> {
         let contents = fs::read_to_string(filename)?;
         let mut rows = Vec::new();
-
+        
         for value in contents.lines() {
             rows.push(Row::from(value));
         }
@@ -105,5 +106,46 @@ impl Document {
 
     pub fn is_dirty(&self) -> bool {
         self.dirty
+    }
+
+    pub fn find(&self, query: &str, at: &Position, direction: SearchDirection) -> Option<Position> {
+        if at.y >= self.rows.len() {
+            return None;
+        }
+
+        let mut position = Position { x: at.x, y: at.y };
+
+        let start = if direction ==  SearchDirection::Forward {
+            at.y
+        } else {
+            0
+        };
+
+        let end = if direction == SearchDirection::Forward {
+            self.rows.len()
+        } else {
+            at.y.saturating_add(1)
+        };
+
+        for _ in start..end {
+            if let Some(row) = self.rows.get(position.y) {
+                if let Some(x) = row.find(&query, position.x, direction) {
+                    position.x = x;
+                    return Some(position);
+                }
+
+                if direction == SearchDirection::Forward {
+                    position.y = position.y.saturating_add(1);
+                    position.x = 0;
+                } else {
+                    position.y = position.y.saturating_sub(1);
+                    position.x = self.rows[position.y].len();
+                }
+            } else {
+                return None;
+            }
+        }
+
+        None
     }
 }
