@@ -1,3 +1,4 @@
+use crate::FileType;
 use crate::Position;
 use crate::Row;
 use crate::SearchDirection;
@@ -10,6 +11,7 @@ pub struct Document {
     rows: Vec<Row>,
     pub filename: Option<String>,
     dirty: bool,
+    file_type: FileType,
 }
 
 impl Document {
@@ -21,7 +23,7 @@ impl Document {
             rows.push(Row::from(value));
         }
 
-        Ok(Self{ rows, filename: Some(filename.to_string()), dirty: false })
+        Ok(Self{ rows, filename: Some(filename.to_string()), dirty: false, file_type: FileType::from(filename) })
     }
     
     fn insert_newline(&mut self, at: &Position) {
@@ -34,7 +36,8 @@ impl Document {
             return;
         }
 
-        let new_row = self.rows[at.y].split(at.x);
+        let current_row = &mut self.rows[at.y];
+        let new_row = current_row.split(at.x);
         self.rows.insert(at.y + 1, new_row);
     }
 
@@ -47,16 +50,23 @@ impl Document {
 
         if c == '\n' {
             self.insert_newline(at);
-            return;
-        }
-
-        if at.y == self.rows.len() {
+        } else if at.y == self.rows.len() {
             let mut row = Row::default();
             row.insert(0, c);
             self.rows.push(row);
         } else {
             let row = &mut self.rows[at.y];
             row.insert(at.x, c);
+        }
+
+        self.unhighlight_rows(at.y);
+    }
+
+    fn unhighlight_rows(&mut self, start: usize) {
+        let start = start.saturating_sub(1);
+
+        for row in self.rows.iter_mut().skip(start) {
+            row.is_highlighted = false;
         }
     }
 
@@ -76,12 +86,16 @@ impl Document {
             let row = &mut self.rows[at.y];
             row.delete(at.x);
         }
+
+        self.unhighlight_rows(at.y);
     }
 
     pub fn save(&mut self) -> Result<(), Error> {
         if let Some(filename) = &self.filename {
             let mut file = fs::File::create(filename)?;
-            for row in &self.rows {
+            self.file_type = FileType::from(filename);
+
+            for row in &mut self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
             }
@@ -147,5 +161,27 @@ impl Document {
         }
 
         None
+    }
+
+    pub fn highlight(&mut self, word: &Option<String>, until: Option<usize>) {
+        let mut start_with_comment = false;
+
+        let until = if let Some(until) = until {
+            if until.saturating_add(1) < self.rows.len() {
+                until.saturating_add(1)
+            } else {
+                self.rows.len()
+            }
+        } else {
+            self.rows.len()
+        };
+
+        for row in &mut self.rows[..until] {
+            start_with_comment = row.highlight(&self.file_type.highlighting_options(), word, start_with_comment);
+        }
+    }
+
+    pub fn file_type(&self) -> String {
+        self.file_type.name()
     }
 }
