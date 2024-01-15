@@ -4,6 +4,7 @@ pub struct FileType {
 }
 
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct HighlightingOptions {
     numbers: bool,
     strings: bool,
@@ -25,6 +26,7 @@ impl Default for FileType {
 
 impl FileType {
     pub fn from(file_name: &str) -> Self {
+        #[allow(clippy::case_sensitive_file_extension_comparisons)]
         if file_name.ends_with(".rs") {
             return Self {
                 name: String::from("Rust"),

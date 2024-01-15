@@ -44,7 +44,7 @@ impl Row {
                 }
 
                 if c == '\t' {
-                    result.push_str(" ");
+                    result.push_str("    ");
                 } else {
                     result.push(c);
                 }
@@ -60,10 +60,6 @@ impl Row {
 
     pub fn len(&self) -> usize {
         self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
     }
 
     pub fn insert(&mut self, at: usize, c: char) {
@@ -102,7 +98,7 @@ impl Row {
         for (index, grapheme) in self.string[..].graphemes(true).enumerate() {
             if index != at {
                 length += 1;
-                result.push_str(grapheme)
+                result.push_str(grapheme);
             }
         }
 
@@ -192,13 +188,13 @@ impl Row {
 
             while let Some(search_match) = self.find(word, index, SearchDirection::Forward) {
                 if let Some(next_index) = search_match.checked_add(word[..].graphemes(true).count()) {
-                    for i in index.saturating_add(search_match)..next_index {
+                    for i in search_match..next_index {
                         self.highlighting[i] = highlighting::Type::Match;
                     }
 
                     index = next_index;
                 } else {
-                    break;
+                   break;
                 }
             }
         }
@@ -312,7 +308,7 @@ impl Row {
                 }
             }
 
-            if self.highlight_str(index, &word, chars, hl_type) {
+            if self.highlight_str(index, word, chars, hl_type) {
                 return true;
             }
         }
@@ -416,7 +412,7 @@ impl Row {
         }
 
         while let Some(c) = chars.get(index) {
-            if self.highlight_multiline_comment(&mut index, &opts, *c, &chars) { 
+            if self.highlight_multiline_comment(&mut index, opts, *c, &chars) { 
                 in_ml_comment = true;
                 continue;
             }
@@ -449,5 +445,5 @@ impl Row {
 }
 
 fn is_separator(c: char) -> bool {
-    c.is_ascii_punctuation() || c.is_ascii_whitespace()
+    (c.is_ascii_punctuation() && c != '_') || c.is_ascii_whitespace()
 }

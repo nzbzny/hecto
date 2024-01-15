@@ -57,12 +57,12 @@ impl Editor {
         let mut initial_status = String::from("HELP: Alt-F = find | Alt-S = save | Alt-Q = quit");
 
         let document = if let Some(filename) = args.get(1) {
-            let doc = Document::open(&filename);
+            let doc = Document::open(filename);
 
             if let Ok(doc) = doc {
                 doc
             } else {
-                initial_status = format!("ERR: Could not open file: {}", filename);
+                initial_status = format!("ERR: Could not open file: {filename}");
                 Document::default()
             }
         } else {
@@ -115,7 +115,7 @@ impl Editor {
             Terminal::cursor_position(&Position {
                 x: self.cursor_position.x.saturating_sub(self.offset.x),
                 y: self.cursor_position.y.saturating_sub(self.offset.y),
-            })
+            });
         }
 
         Terminal::cursor_show();
@@ -128,7 +128,7 @@ impl Editor {
         let end = start + width;
 
         let row = row.render(start, end);
-        println!("{}\r", row);
+        println!("{row}\r");
     }
 
     fn draw_rows(&self) {
@@ -177,12 +177,12 @@ impl Editor {
 
         status.push_str(&" ".repeat(width.saturating_sub(len)));
 
-        status = format!("{}{}", status, line_indicator);
+        status = format!("{status}{line_indicator}");
 
         status.truncate(width);
         Terminal::set_bg_color(STATUS_BG_COLOR);
         Terminal::set_fg_color(STATUS_FG_COLOR);
-        println!("{}\r", status);
+        println!("{status}\r");
         Terminal::reset_fg_color();
         Terminal::reset_bg_color();
     }
@@ -190,10 +190,10 @@ impl Editor {
     fn draw_message_bar(&self) {
         Terminal::clear_current_line();
         let message = &self.status_message;
-        if Instant::now() - message.time < Duration::new(5, 0) {
+        if message.time.elapsed() < Duration::new(5, 0) {
             let mut text = message.text.clone();
             text.truncate(self.terminal.size().width as usize);
-            print!("{}", text);
+            print!("{text}");
         }
     }
 
@@ -239,12 +239,12 @@ impl Editor {
                 Key::Right | Key::Down => {
                     direction = SearchDirection::Forward;
                     editor.move_cursor(Key::Right);
-                    moved = true
+                    moved = true;
                 }
                 Key::Left | Key::Up => direction = SearchDirection::Backward,
                 _ => direction = SearchDirection::Forward,
             }
-            if let Some(position) = editor.document.find(&query, &editor.cursor_position, direction) {
+            if let Some(position) = editor.document.find(query, &editor.cursor_position, direction) {
                 editor.cursor_position = position;
                 editor.scroll();
             } else if moved {
@@ -269,9 +269,7 @@ impl Editor {
         match pressed_key {
             Key::Alt('q') => {
                 if self.quit_times > 0 && self.document.is_dirty() {
-                    self.status_message = StatusMessage::from(format!(
-                        "WARNING! File has unsaved changes. Press Alt-Q again to quit"
-                    ));
+                    self.status_message = StatusMessage::from("WARNING! File has unsaved changes. Press Alt-Q again to quit".to_string());
                     self.quit_times -= 1;
                     return Ok(());
                 }
@@ -316,7 +314,7 @@ impl Editor {
         let mut result = String::new();
 
         loop {
-            self.status_message = StatusMessage::from(format!("{}{}", prompt, result));
+            self.status_message = StatusMessage::from(format!("{prompt}{result}"));
             self.refresh_screen()?;
 
             let key = Terminal::read_key()?;
@@ -389,7 +387,7 @@ impl Editor {
             }
             Key::Left => {
                 if x > 0 {
-                    x -= 1
+                    x -= 1;
                 } else if y > 0 {
                     y -= 1;
 
